@@ -9,9 +9,8 @@ The application supports two primary scanning methods:
 1. **URL Scan** — Analyze a running web application.
 2. **Source Code Scan** — Upload a project ZIP and analyze its source code.
 
-> 🚧 **Project Status: Under Active Development**
 
----
+
 
 ## 📌 Project Overview
 
@@ -55,6 +54,8 @@ AppCheck aims to provide a single platform where developers can run automated se
                                     │
                                     ▼
                              Security Report
+
+
 🎯 Project Goals
 
 AppCheck is designed to:
@@ -115,8 +116,9 @@ Example:
 my-project.zip
 
 AppCheck analyzes the source code without executing the uploaded application.
-
 Planned Source-Code Checks
+
+
 🔐 Secrets Detection
 
 Detect potential:
@@ -130,9 +132,8 @@ Database credentials
 JWT secrets
 .env files
 
-Tool:
+Tool: Gitleaks
 
-Gitleaks
 🛡️ Insecure Code Detection
 
 Analyze source code for potentially dangerous patterns such as:
@@ -146,9 +147,9 @@ Authorization-related patterns
 Insecure configuration
 Unsafe data handling
 
-Tool:
+Tool: Semgrep
 
-Semgrep
+
 📦 Dependency Vulnerabilities
 
 Analyze project dependencies for known vulnerabilities.
@@ -209,6 +210,8 @@ GitHub
 Postman
 Docker
 VS Code
+
+
 🏗️ Architecture
                          ┌──────────────────────┐
                          │       Next.js        │
