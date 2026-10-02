@@ -70,7 +70,10 @@ Provide actionable recommendations.
 Maintain scan history.
 Generate security reports.
 Demonstrate practical application-security concepts.
+
+
 🔍 Scan Modes
+
 1. URL Scan
 
 The user provides a live web application URL.
@@ -165,7 +168,9 @@ Weak JWT configuration
 Insecure CORS configuration
 Sensitive information in logs
 Missing validation indicators
+
 🧰 Technology Stack
+
 Frontend
 Next.js
 React
@@ -247,7 +252,10 @@ VS Code
                                     │
                                     ▼
                               Final Report
+
+
 🔄 URL Scan Flow
+
 User
  │
  │ Enter URL
@@ -283,7 +291,10 @@ Express API
           │
           ▼
     Security Report
+
+
 🔄 Source Code Scan Flow
+
 User
  │
  │ Upload ZIP
@@ -330,6 +341,8 @@ Semgrep Gitleaks   npm audit
           │
           ▼
  Temporary Files Deleted
+
+
 🔐 Security Architecture
 
 AppCheck itself will also be developed with security in mind.
@@ -361,6 +374,8 @@ View users
 View all scans
 View system statistics
 Manage users
+
+
 🛡️ API Security
 
 Planned protections:
@@ -373,6 +388,8 @@ Centralized error handling
 Secure environment variables
 Authentication middleware
 Authorization middleware
+
+
 📁 File Upload Security
 
 Uploaded source code is considered untrusted data.
@@ -407,6 +424,8 @@ Temporary Files Deleted
 
 The uploaded application will not be executed by AppCheck.
 
+
+
 🔑 Sensitive Data Protection
 
 AppCheck will not expose complete secrets discovered during scanning.
@@ -422,6 +441,8 @@ Instead of:
 sk_live_actual_secret_value
 
 Passwords, JWT secrets, API keys, and other sensitive information must never be logged or returned to the frontend.
+
+
 
 📊 Security Findings
 
@@ -458,6 +479,7 @@ AppCheck will also provide an AppCheck Security Score.
 
 The AppCheck Security Score is a project-specific risk indicator and is not an industry-standard security rating.
 
+
 📈 Dashboard
 
 The planned dashboard will include:
@@ -479,6 +501,8 @@ Recent scans
 Recent findings
 Scan status
 Finding details
+
+
 📋 Scan History
 
 Users will be able to view previous scans.
@@ -493,7 +517,9 @@ demo-app.com        URL        Completed    94
 
 Users can open a previous scan to view its complete report.
 
+
 🔑 Authentication Flow
+
 Register
    │
    ▼
@@ -513,7 +539,10 @@ JWT
    │
    ▼
 Protected Application
+
+
 🗂️ Planned Project Structure
+
 appcheck/
 │
 ├── frontend/
@@ -552,6 +581,8 @@ appcheck/
 │
 ├── .gitignore
 └── README.md
+
+
 🧪 Testing Strategy
 
 AppCheck will be tested only against applications that we own or are explicitly authorized to test.
@@ -577,6 +608,7 @@ Vulnerable Demo Application
 
 This provides a safe and repeatable way to validate the scanner.
 
+
 ⚠️ Responsible Use
 
 AppCheck is intended for:
@@ -599,7 +631,9 @@ Potential findings requiring manual verification
 
 Complex business-logic vulnerabilities and authorization issues may require manual security testing.
 
+
 🚧 Development Status
+
 Phase 1 — Project Setup
  Next.js setup
  React setup
@@ -612,6 +646,7 @@ Phase 1 — Project Setup
  Frontend ↔ Backend connection
  MongoDB connection
  Initial health API
+
 Phase 2 — Frontend
  Professional dashboard
  Navigation
@@ -621,6 +656,7 @@ Phase 2 — Frontend
  Findings UI
  Reports
  Responsive design
+
 Phase 3 — Backend
  Authentication API
  Authorization
@@ -630,6 +666,7 @@ Phase 3 — Backend
  Error handling
  Logging
  Validation
+
 Phase 4 — URL Scanner
  OWASP ZAP integration
  Security header checks
@@ -637,6 +674,7 @@ Phase 4 — URL Scanner
  HTTPS/TLS checks
  CORS checks
  Result normalization
+
 Phase 5 — Source Scanner
  ZIP upload
  Secure extraction
@@ -645,12 +683,14 @@ Phase 5 — Source Scanner
  npm audit
  OSV Scanner
  Custom security rules
+
 Phase 6 — Reporting
  Security score
  Findings dashboard
  Charts
  Reports
  Scan history
+
 Phase 7 — Hardening & Deployment
  Security audit
  Dependency audit
@@ -658,7 +698,10 @@ Phase 7 — Hardening & Deployment
  Production configuration
  Deployment
  Documentation
+
+
 🗺️ Development Roadmap
+
                     APP CHECK
                         │
                         ▼
@@ -712,7 +755,10 @@ Phase 7 — Hardening & Deployment
               ┌─────────────────┐
               │ 10. Deployment  │
               └─────────────────┘
+
+
 📚 Learning Objectives
+
 Frontend
 React
 Next.js
