@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment files (secrets). Only the templates are committed.
+.env
+.env.*
+!.env.example
+
+# Build output
+frontend/.next/
+frontend/out/
+build/
+dist/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json

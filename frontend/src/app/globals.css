@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/*
+ * AppCheck design tokens. Components use them through Tailwind utilities
+ * (bg-brand-600, text-navy-300, bg-canvas, shadow-card, rounded-card, ...)
+ * rather than raw values, so the palette changes in one place.
+ */
+@theme {
+  /* Primary accent (indigo): primary actions, focus rings, active navigation. */
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+
+  /* Sidebar and authentication panel surfaces. */
+  --color-navy-950: #0a1020;
+  --color-navy-900: #0f172b;
+  --color-navy-800: #1a2440;
+  --color-navy-700: #283453;
+  --color-navy-400: #8592b0;
+  --color-navy-300: #aeb8d0;
+  --color-navy-200: #d3d9e8;
+
+  /* Main workspace background. */
+  --color-canvas: #f6f7f9;
+
+  /*
+   * Severity scale for badges, tiles, and chart marks; always paired with a
+   * text label so severity is never conveyed by color alone. The first four
+   * hues were validated on white for lightness, chroma, and CVD separation.
+   * Informational is a neutral slate so it never competes with real risk.
+   */
+  --color-severity-critical: #9f1d1d;
+  --color-severity-high: #e8590c;
+  --color-severity-medium: #dca312;
+  --color-severity-low: #3b82d6;
+  --color-severity-info: #7c879b;
+
+  --radius-card: 0.625rem;
+
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --shadow-popover: 0 12px 32px -12px rgb(15 23 42 / 0.28), 0 4px 10px -4px rgb(15 23 42 / 0.1);
+}
+
+html {
+  color-scheme: light;
+}
+
+/* Smooth in-page navigation (homepage section links), unless reduced motion is requested. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Reduced motion: no transitions or decorative animation; spinners keep turning slowly. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-pulse {
+    animation: none !important;
+  }
+  .animate-spin {
+    animation-duration: 1.5s !important;
+  }
+}
+
+body {
+  @apply bg-canvas text-slate-900 antialiased;
+}
