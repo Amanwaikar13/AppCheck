@@ -1,553 +1,314 @@
+<div align="center">
+
 # AppCheck
 
-## Web Application Security & Code Quality Analyzer
+**Web Application Security & Code Quality Analyzer**
 
-AppCheck is a full-stack web application designed to analyze web applications for common security weaknesses, exposed secrets, vulnerable dependencies, insecure configurations, and potentially dangerous coding patterns.
+A developer-focused workspace for managing security scans, reviewing findings, and tracking application risk.
 
-The application supports two primary scanning methods:
+![AppCheck landing page](docs/images/landing-page.png)
 
-1. **URL Scan** — Analyze a running web application.
-2. **Source Code Scan** — Upload a project ZIP and analyze its source code.
+[Overview](#overview) · [Features](#features) · [Architecture](#architecture) · [Setup](#getting-started) · [Security](#security--responsible-use) · [Roadmap](#project-status)
 
+</div>
 
+---
 
+## Overview
 
-## 📌 Project Overview
+Modern applications depend on frameworks, APIs, authentication systems, configuration, and third-party packages. A vulnerable dependency, exposed secret, or insecure configuration can introduce risk.
 
-Modern web applications use multiple frameworks, APIs, databases, authentication systems, third-party packages, and external services.
+**AppCheck** is a full-stack application-security project intended to bring authorized web-application scanning and source-code analysis into one workspace. It includes account authentication, scan-request management, scan history, finding persistence, and a dashboard for reviewing results.
 
-A small configuration mistake or insecure coding pattern can introduce security risks.
+> **Current status:** The URL-scanning workflow and OWASP ZAP Docker runner are implemented in code, but a real ZAP scan has **not yet been verified** on the development machine because Docker and WSL 2 are not installed there. Existing scanner tests use mocked ZAP execution. End-to-end source-code scanning is planned and is not currently available.
 
-AppCheck aims to provide a single platform where developers can run automated security checks and view the results through a clear and developer-friendly dashboard.
+## Screenshots
 
-### High-Level Flow
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <strong>Public landing page</strong><br><br>
+      <img src="docs/images/landing-page.png" alt="AppCheck public landing page" width="100%">
+    </td>
+    <td align="center" width="50%">
+      <strong>Dashboard overview</strong><br><br>
+      <img src="docs/images/dashboard-overview.png" alt="AppCheck dashboard overview" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong>Create account</strong><br><br>
+      <img src="docs/images/register-page.png" alt="AppCheck registration page" width="100%">
+    </td>
+    <td align="center" width="50%">
+      <strong>Sign in</strong><br><br>
+      <img src="docs/images/login-page.png" alt="AppCheck sign-in page" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <strong>Security posture and system status</strong><br><br>
+      <img src="docs/images/dashboard-security-posture.png" alt="AppCheck security posture and system status" width="100%">
+    </td>
+  </tr>
+</table>
+
+> Dashboard security scores and severity counts shown as sample data are illustrative. They must not be interpreted as results from a real scan.
+
+## Features
+
+### Application features
+
+- **Authentication:** registration, sign-in, protected routes, password hashing, and session-cookie protections.
+- **Scan management:** create and track URL-scan requests and source-scan request records.
+- **Scan lifecycle:** queued, running, completed, and failed states in the URL-scanning workflow.
+- **Scan history:** review your own scan records, statuses, finding counts, and available results.
+- **Findings:** persist normalized URL-scan findings and restrict access to the scan owner.
+- **Dashboard:** view live scan counts and recent activity. Sample security-posture data is labeled until a real scan completes.
+- **Security controls:** request validation, authentication and ownership checks, rate limiting, secure HTTP headers, and structured logging.
+- **Responsive interface:** public landing page, authentication screens, dashboard, scan pages, and responsive navigation.
+
+### Scanner capability status
+
+| Capability | Current status |
+|---|---|
+| Scan-request and history APIs | Implemented |
+| URL validation and SSRF safeguards | Implemented in code; continued verification required |
+| Background URL-scan worker | Implemented |
+| OWASP ZAP Docker runner | Implemented in code; real execution not yet verified |
+| ZAP report normalization and finding persistence | Implemented for scanner reports |
+| Source-code ZIP scanning | Planned; not end-to-end implemented |
+| Semgrep, Gitleaks, npm audit, OSV-Scanner pipeline | Planned |
+| Production hardening | Pending real-scanner validation and security review |
+
+## Technology Stack
+
+| Area | Technologies |
+|---|---|
+| Frontend | Next.js App Router, React, JavaScript, Redux Toolkit, React Hook Form, Axios, Tailwind CSS, Recharts, TanStack Table |
+| Backend | Node.js, Express.js, JavaScript REST API |
+| Database | MongoDB, Mongoose, MongoDB Atlas |
+| Authentication and security | JWT, bcrypt, Helmet, CORS, express-rate-limit, Zod |
+| Logging | Pino |
+| URL scanner | OWASP ZAP Docker integration (real execution pending validation) |
+| Planned source scanners | Semgrep, Gitleaks, npm audit, OSV-Scanner |
+| Development tools | Git, GitHub, Postman, Docker, VS Code |
+
+## Architecture
+
+```mermaid
+flowchart TD
+    User[User / Browser] --> Frontend[Next.js Frontend]
+    Frontend -->|Axios / REST| API[Express API]
+    API --> Auth[Authentication and Authorization]
+    API --> ScanManager[Scan Manager]
+    Auth --> DB[(MongoDB)]
+    ScanManager --> DB
+    ScanManager --> Queue[Queued URL Scan]
+    Queue --> Worker[Background Worker]
+    Worker --> Policy[Target Policy and SSRF Controls]
+    Policy --> Proxy[Per-scan Egress Proxy]
+    Proxy --> ZAP[OWASP ZAP Container]
+    ZAP --> Report[Scanner Report]
+    Report --> Normalize[Finding Normalization]
+    Normalize --> DB
+    DB --> UI[Dashboard, History and Findings]
+```
+
+The frontend communicates with the Express API. The API validates requests, enforces authentication and ownership, records scan jobs, and persists results in MongoDB. The URL worker is designed to run a ZAP baseline scan through a restricted egress proxy and normalize the report into findings.
+
+**Validation note:** The real ZAP-to-proxy network path has not yet been verified with a live scan. The architecture diagram describes the intended code flow, not proof of successful live execution.
+
+## URL Scan Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as Next.js UI
+    participant API as Express API
+    participant DB as MongoDB
+    participant Worker as Scan Worker
+    participant Proxy as Egress Proxy
+    participant ZAP as OWASP ZAP
+
+    User->>UI: Submit authorized URL
+    UI->>API: Create scan request
+    API->>API: Authenticate and validate target
+    API->>DB: Save scan as queued
+    API-->>UI: Return scan record
+    Worker->>DB: Claim queued scan
+    Worker->>Worker: Revalidate target and lock address
+    Worker->>Proxy: Start restricted per-scan proxy
+    Worker->>ZAP: Start baseline scan
+    ZAP->>Proxy: Send target requests
+    Proxy-->>ZAP: Enforce destination policy
+    ZAP-->>Worker: Return scan report
+    Worker->>DB: Persist findings and final status
+    UI->>API: Poll status / request findings
+    API-->>UI: Return owner-authorized results
+```
+
+### Scan states
+
+| State | Meaning |
+|---|---|
+| `queued` | The scan request is stored and waiting for a worker. |
+| `running` | The worker has claimed the job and is executing it. |
+| `completed` | Scanner execution and result processing finished successfully. |
+| `failed` | Validation, execution, timeout, or result processing failed. |
+
+A scan must not be marked `completed` unless scanner results were actually produced and processed.
+
+## Getting Started
+
+### Prerequisites
+
+- Git
+- Node.js LTS and npm
+- MongoDB Atlas or another accessible MongoDB instance
+- Docker Desktop with its engine running for real ZAP execution
+- WSL 2 for supported Windows installations using Docker Desktop's WSL 2 backend
+
+Without Docker and a verified ZAP run, you can work on the application UI and APIs, but the scanner is not validated end to end.
+
+### 1. Clone the repository
+
+```bash
+git clone <YOUR_GITHUB_REPOSITORY_URL>
+cd appcheck
+```
+
+Replace `<YOUR_GITHUB_REPOSITORY_URL>` with your actual GitHub repository URL.
+
+### 2. Install dependencies
+
+Open one terminal for the backend:
+
+```bash
+cd backend
+npm install
+```
+
+Open a second terminal for the frontend:
+
+```bash
+cd frontend
+npm install
+```
+
+### 3. Configure the backend environment
+
+Create `backend/.env` using `backend/.env.example` as the source of truth. A typical local configuration includes:
+
+```dotenv
+NODE_ENV=development
+PORT=5000
+FRONTEND_URL=http://localhost:3000
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>/<database>
+JWT_SECRET=<long-random-secret>
+URL_SCANNER=disabled
+```
+
+The exact required variables may differ. Check `backend/src/config/env.js` and `backend/.env.example` and include all required settings.
+
+**Never commit `.env` files or publish database credentials, JWT secrets, API keys, or cookies.**
+
+### 4. Configure the frontend environment
+
+Create `frontend/.env.local`:
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+```
+
+Restart the Next.js dev server after changing environment variables.
+
+### 5. Configure MongoDB Atlas
+
+1. Create or select a MongoDB Atlas project and cluster.
+2. Create a database user with a strong password.
+3. Add your current development IP in **Network Access**.
+4. Put the connection string in `backend/.env` and specify the intended database.
+5. Keep the connection string private.
+
+If the connection fails, verify the Atlas IP allowlist, database credentials, connection string, and local network/DNS configuration.
+
+### 6. Start the backend
+
+From the `backend` directory, use the script defined by `backend/package.json`. If `npm run dev` is configured:
+
+```bash
+npm run dev
+```
+
+Otherwise, use the repository's documented server command.
+
+Check the health endpoint:
 
 ```text
-                         ┌─────────────────────┐
-                         │      AppCheck       │
-                         └──────────┬──────────┘
-                                    │
-                     ┌──────────────┴──────────────┐
-                     │                             │
-                     ▼                             ▼
-                URL SCAN                      SOURCE SCAN
-                     │                             │
-             Running Website                  ZIP Upload
-                     │                             │
-                     ▼                             ▼
-                OWASP ZAP                     Semgrep
-                HTTP Checks                   Gitleaks
-                Security Headers              npm audit
-                Cookie Checks                 OSV Scanner
-                TLS Checks                    Custom Rules
-                     │                             │
-                     └──────────────┬──────────────┘
-                                    │
-                                    ▼
-                         Result Normalization
-                                    │
-                                    ▼
-                                MongoDB
-                                    │
-                                    ▼
-                          Security Dashboard
-                                    │
-                                    ▼
-                             Security Report
+http://localhost:5000/api/v1/health
+```
 
+Confirm the API is running and the database reports as connected before testing authenticated features.
 
-🎯 Project Goals
+### 7. Start the frontend
 
-AppCheck is designed to:
+From the `frontend` directory:
 
-Analyze running web applications.
-Analyze application source code.
-Detect common security weaknesses.
-Detect exposed secrets and credentials.
-Identify vulnerable dependencies.
-Analyze security headers and cookies.
-Detect potentially insecure coding patterns.
-Provide actionable recommendations.
-Maintain scan history.
-Generate security reports.
-Demonstrate practical application-security concepts.
+```bash
+npm run dev
+```
 
+Open [http://localhost:3000](http://localhost:3000), create an account, and explore the dashboard, URL Scan, Scan History, scan details, Findings, Reports, and Settings.
 
-🔍 Scan Modes
+### 8. Enable and validate real ZAP scanning
 
-1. URL Scan
+**Keep `URL_SCANNER` disabled until Docker is available and the proxy-boundary checks pass.**
 
-The user provides a live web application URL.
+1. Install Docker Desktop using the [official Windows installation guide](https://docs.docker.com/desktop/setup/install/windows-install/).
+2. Start Docker Desktop and verify both the Docker client and server are available:
 
-Example:
+   ```bash
+   docker version
+   ```
 
-https://example.com
+3. Pull the ZAP image:
 
-AppCheck performs authorized security checks against the running application.
+   ```bash
+   docker pull zaproxy/zap-stable
+   ```
 
-Planned URL Checks
-HTTPS configuration
-HTTP → HTTPS redirect
-HSTS
-Content-Security-Policy
-X-Frame-Options
-X-Content-Type-Options
-Referrer-Policy
-Secure cookies
-HttpOnly cookies
-SameSite cookies
-CORS configuration indicators
-Information disclosure
-Source-map exposure
-TLS-related configuration
-Common web application vulnerabilities
-Primary Scanner
+4. Follow `docs/DEVELOPMENT.md` for the exact scanner environment variables and local lab target configuration.
+5. Run the repository's documented scanner lab check **before** starting a scan.
+6. Continue only if the prohibited-destination canary receives zero requests and the required boundary checks pass.
+7. Start the documented local training target and scan only that target.
+8. Verify the scan produced a genuine ZAP report, findings were persisted, and `proxyStats.requests` is greater than zero.
 
-OWASP ZAP
+If a boundary check fails or ZAP bypasses the proxy, disable the scanner. Do not test against public systems or real cloud metadata endpoints.
 
-OWASP ZAP will be used for dynamic application security testing.
+## Testing
 
-📦 2. Source Code Scan
+Run the scripts available in each package's `package.json`. Typical commands are:
 
-Users can upload a project as a ZIP file.
+```bash
+# Backend
+cd backend
+npm test
 
-Example:
+# Frontend (run from another terminal)
+cd frontend
+npm run lint
+npm run build
+```
 
-my-project.zip
+If a script is not defined, inspect the relevant `package.json` and use the project's configured command.
 
-AppCheck analyzes the source code without executing the uploaded application.
-Planned Source-Code Checks
+Mocked scanner tests can validate job processing, report normalization, and error handling. They do **not** prove that a real ZAP container executes successfully or that its traffic is confined to the egress proxy.
 
+## Repository Structure
 
-🔐 Secrets Detection
-
-Detect potential:
-
-API keys
-Passwords
-Access tokens
-Private keys
-Cloud credentials
-Database credentials
-JWT secrets
-.env files
-
-Tool: Gitleaks
-
-🛡️ Insecure Code Detection
-
-Analyze source code for potentially dangerous patterns such as:
-
-Injection
-XSS
-Command execution
-Unsafe functions
-Authentication weaknesses
-Authorization-related patterns
-Insecure configuration
-Unsafe data handling
-
-Tool: Semgrep
-
-
-📦 Dependency Vulnerabilities
-
-Analyze project dependencies for known vulnerabilities.
-
-Tools:
-
-npm audit
-OSV-Scanner
-⚙️ Configuration Analysis
-
-Potential checks include:
-
-Debug configuration
-Environment files
-Hardcoded credentials
-Weak JWT configuration
-Insecure CORS configuration
-Sensitive information in logs
-Missing validation indicators
-
-🧰 Technology Stack
-
-Frontend
-Next.js
-React
-JavaScript
-Redux Toolkit
-React Hook Form
-Axios
-Tailwind CSS
-Recharts
-TanStack Table
-Backend
-Node.js
-Express.js
-JavaScript
-REST API
-JWT
-bcrypt
-Multer
-Helmet
-express-rate-limit
-Zod
-Pino
-Database
-MongoDB
-Mongoose
-MongoDB Atlas
-Security Tools
-OWASP ZAP
-Semgrep
-Gitleaks
-npm audit
-OSV-Scanner
-Development Tools
-Git
-GitHub
-Postman
-Docker
-VS Code
-
-
-🏗️ Architecture
-                         ┌──────────────────────┐
-                         │       Next.js        │
-                         │    React Frontend    │
-                         └──────────┬───────────┘
-                                    │
-                                  Axios
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │    Express API       │
-                         │      Node.js         │
-                         └──────────┬───────────┘
-                                    │
-              ┌─────────────────────┼─────────────────────┐
-              │                     │                     │
-              ▼                     ▼                     ▼
-       Authentication          Scan Manager           MongoDB
-                                    │
-                         ┌──────────┴──────────┐
-                         │                     │
-                         ▼                     ▼
-                     URL Scan             Source Scan
-                         │                     │
-                         ▼                     ▼
-                    OWASP ZAP             Semgrep
-                                         Gitleaks
-                                        npm audit
-                                      OSV-Scanner
-                         │                     │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                           Result Normalization
-                                    │
-                                    ▼
-                                 MongoDB
-                                    │
-                                    ▼
-                           Security Dashboard
-                                    │
-                                    ▼
-                              Final Report
-
-
-🔄 URL Scan Flow
-
-User
- │
- │ Enter URL
- ▼
-Next.js
- │
- │ POST /api/scans/url
- ▼
-Express API
- │
- ├── Validate URL
- ├── Authenticate User
- ├── Create Scan
- └── Create Scan Job
-          │
-          ▼
-     Scan Processor
-          │
-          ▼
-       OWASP ZAP
-          │
-          ▼
-      Raw Results
-          │
-          ▼
-  Result Normalization
-          │
-          ▼
-       MongoDB
-          │
-          ▼
-    React Dashboard
-          │
-          ▼
-    Security Report
-
-
-🔄 Source Code Scan Flow
-
-User
- │
- │ Upload ZIP
- ▼
-Next.js
- │
- │ multipart/form-data
- ▼
-Express API
- │
- ├── Authenticate
- ├── Validate File
- ├── Validate Size
- └── Create Scan
-          │
-          ▼
-   Temporary Directory
-          │
-          ▼
-    Safe ZIP Extraction
-          │
-          ▼
-   ┌──────┼───────────┐
-   │      │           │
-   ▼      ▼           ▼
-Semgrep Gitleaks   npm audit
-                       │
-                       ▼
-                  OSV Scanner
-   │      │           │
-   └──────┼───────────┘
-          │
-          ▼
-   Result Normalization
-          │
-          ▼
-       MongoDB
-          │
-          ▼
-   Security Dashboard
-          │
-          ▼
-      Final Report
-          │
-          ▼
- Temporary Files Deleted
-
-
-🔐 Security Architecture
-
-AppCheck itself will also be developed with security in mind.
-
-Authentication
-JWT authentication
-Password hashing using bcrypt
-Protected routes
-Authentication middleware
-Authorization
-
-Role-Based Access Control:
-
-User
-Admin
-User
-
-Users can:
-
-Create scans
-View their own scans
-View their own findings
-View reports
-Admin
-
-Admins can additionally:
-
-View users
-View all scans
-View system statistics
-Manage users
-
-
-🛡️ API Security
-
-Planned protections:
-
-Input validation
-Rate limiting
-Helmet
-CORS configuration
-Centralized error handling
-Secure environment variables
-Authentication middleware
-Authorization middleware
-
-
-📁 File Upload Security
-
-Uploaded source code is considered untrusted data.
-
-The application will implement:
-
-ZIP Upload
-     │
-     ▼
-File Type Validation
-     │
-     ▼
-File Size Validation
-     │
-     ▼
-Safe Temporary Directory
-     │
-     ▼
-Safe ZIP Extraction
-     │
-     ▼
-Path Traversal Protection
-     │
-     ▼
-Security Scanning
-     │
-     ▼
-Results Stored
-     │
-     ▼
-Temporary Files Deleted
-
-The uploaded application will not be executed by AppCheck.
-
-
-
-🔑 Sensitive Data Protection
-
-AppCheck will not expose complete secrets discovered during scanning.
-
-Example:
-
-Detected:
-
-sk_live_****************7x
-
-Instead of:
-
-sk_live_actual_secret_value
-
-Passwords, JWT secrets, API keys, and other sensitive information must never be logged or returned to the frontend.
-
-
-
-📊 Security Findings
-
-Different security tools produce different result formats.
-
-AppCheck will normalize their results into a common finding structure.
-
-Example:
-
-{
-  "severity": "CRITICAL",
-  "category": "Secrets",
-  "title": "Hardcoded API Secret",
-  "description": "A potential API credential was detected.",
-  "recommendation": "Move the credential to an environment variable.",
-  "sourceTool": "Gitleaks",
-  "file": "backend/config.js",
-  "line": 18,
-  "status": "open"
-}
-
-This allows the frontend to display findings consistently regardless of which scanner detected them.
-
-🚦 Severity Levels
-
-Findings will be categorized into:
-
-🔴 Critical
-🟠 High
-🟡 Medium
-🔵 Low
-
-AppCheck will also provide an AppCheck Security Score.
-
-The AppCheck Security Score is a project-specific risk indicator and is not an industry-standard security rating.
-
-
-📈 Dashboard
-
-The planned dashboard will include:
-
-Overview
-Security Score
-Total Scans
-Critical Findings
-High Findings
-Medium Findings
-Low Findings
-Charts
-Findings by severity
-Findings by category
-Scan history
-Vulnerability trends
-Tables
-Recent scans
-Recent findings
-Scan status
-Finding details
-
-
-📋 Scan History
-
-Users will be able to view previous scans.
-
-Example:
-
-Target              Type       Status       Score
---------------------------------------------------
-example.com         URL        Completed    82
-project.zip         Source     Completed    71
-demo-app.com        URL        Completed    94
-
-Users can open a previous scan to view its complete report.
-
-
-🔑 Authentication Flow
-
-Register
-   │
-   ▼
-Password Hashing
-   │
-   ▼
-MongoDB
-   │
-   ▼
-Login
-   │
-   ▼
-Password Verification
-   │
-   ▼
-JWT
-   │
-   ▼
-Protected Application
-
-
-🗂️ Planned Project Structure
-
+```text
 appcheck/
-│
 ├── frontend/
 │   ├── app/
 │   ├── components/
@@ -556,269 +317,78 @@ appcheck/
 │   ├── lib/
 │   ├── services/
 │   └── store/
-│
 ├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   ├── controllers/
-│   │   ├── middleware/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   │   ├── zap/
-│   │   │   ├── semgrep/
-│   │   │   ├── gitleaks/
-│   │   │   ├── dependencies/
-│   │   │   └── custom-rules/
-│   │   ├── utils/
-│   │   └── validators/
-│   │
-│   └── server.js
-│
+│   └── src/
+│       ├── config/
+│       ├── controllers/
+│       ├── middleware/
+│       ├── models/
+│       ├── routes/
+│       ├── scanner/
+│       ├── services/
+│       ├── utils/
+│       └── validators/
 ├── docs/
+│   ├── images/
 │   ├── ARCHITECTURE.md
 │   ├── API.md
 │   ├── DATABASE.md
 │   ├── SECURITY.md
 │   └── DEVELOPMENT.md
-│
-├── .gitignore
-└── README.md
+├── README.md
+└── .gitignore
+```
 
+This is a high-level guide. Refer to the current repository for the exact structure.
 
-🧪 Testing Strategy
+## Security and Responsible Use
 
-AppCheck will be tested only against applications that we own or are explicitly authorized to test.
+AppCheck is intended for development environments, local security testing, and authorized assessments of systems you own or have explicit permission to test.
 
-A dedicated intentionally vulnerable demo application may be used to test the scanning functionality.
+- Only scan authorized targets.
+- Begin with passive baseline checks; aggressive active testing requires separate authorization and a risk review.
+- Treat submitted URLs, scanner output, and source archives as untrusted input.
+- Keep scanner execution isolated and resource-limited.
+- Do not expose secrets found in source code or scanner evidence.
+- Verify findings manually before treating them as confirmed vulnerabilities.
 
-Vulnerable Demo Application
-            │
-            ▼
-         AppCheck
-            │
-            ▼
-      Detect Findings
-            │
-            ▼
-      Fix Vulnerability
-            │
-            ▼
-        Scan Again
-            │
-            ▼
-    Verify Improvement
+Automated scanners can produce false positives and false negatives. AppCheck cannot guarantee that an application is secure. Real ZAP proxy enforcement and isolated Docker networking remain prerequisites before production use.
 
-This provides a safe and repeatable way to validate the scanner.
+## Project Status
 
+- [x] Full-stack application foundation and database integration
+- [x] Authentication and protected routes
+- [x] Scan request management and scan history
+- [x] Responsive landing page and dashboard
+- [x] URL-scanner worker and report-processing code
+- [x] Finding persistence and owner-based access
+- [ ] Install Docker/WSL on the development machine
+- [ ] Verify a genuine ZAP baseline scan end to end
+- [ ] Verify proxy enforcement and isolated scanner networking with real ZAP
+- [ ] Implement secure source-code ZIP scanning
+- [ ] Integrate Semgrep, Gitleaks, npm audit, and OSV-Scanner
+- [ ] Complete reporting and production hardening
 
-⚠️ Responsible Use
+## Learning Objectives
 
-AppCheck is intended for:
+This project explores:
 
-Development environments
-Applications owned by the user
-Authorized security assessments
-Local security testing
-Security education
+- Next.js, React, forms, state management, charts, and tables.
+- REST API design, authentication, authorization, validation, and logging.
+- MongoDB data modeling and indexing.
+- Background jobs and scan-state management.
+- Dynamic and static application security testing.
+- SSRF prevention, safe process execution, secrets handling, and rate limiting.
+- Docker-based tool isolation, automated testing, and deployment.
 
-Users should only scan applications when they have permission to test them.
+## License
 
-AppCheck is an automated analysis tool and cannot guarantee that an application is secure.
+No license is specified here. Add a `LICENSE` file and update this section before distributing the project or accepting external contributions.
 
-Automated security tools may produce:
+---
 
-False positives
-False negatives
-Potential findings requiring manual verification
+<div align="center">
 
-Complex business-logic vulnerabilities and authorization issues may require manual security testing.
+**AppCheck — Security visibility for applications you are authorized to test.**
 
-
-🚧 Development Status
-
-Phase 1 — Project Setup
- Next.js setup
- React setup
- JavaScript configuration
- Tailwind CSS
- Redux Toolkit
- Node.js setup
- Express setup
- MongoDB Atlas
- Frontend ↔ Backend connection
- MongoDB connection
- Initial health API
-
-Phase 2 — Frontend
- Professional dashboard
- Navigation
- Authentication UI
- Scan creation UI
- Scan history
- Findings UI
- Reports
- Responsive design
-
-Phase 3 — Backend
- Authentication API
- Authorization
- MongoDB models
- Scan APIs
- Finding APIs
- Error handling
- Logging
- Validation
-
-Phase 4 — URL Scanner
- OWASP ZAP integration
- Security header checks
- Cookie checks
- HTTPS/TLS checks
- CORS checks
- Result normalization
-
-Phase 5 — Source Scanner
- ZIP upload
- Secure extraction
- Semgrep integration
- Gitleaks integration
- npm audit
- OSV Scanner
- Custom security rules
-
-Phase 6 — Reporting
- Security score
- Findings dashboard
- Charts
- Reports
- Scan history
-
-Phase 7 — Hardening & Deployment
- Security audit
- Dependency audit
- Testing
- Production configuration
- Deployment
- Documentation
-
-
-🗺️ Development Roadmap
-
-                    APP CHECK
-                        │
-                        ▼
-              ┌─────────────────┐
-              │ 1. Project Setup│
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │ 2. Frontend UI  │
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │ 3. Authentication│
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │ 4. REST API     │
-              │ MongoDB         │
-              └────────┬────────┘
-                       │
-             ┌─────────┴─────────┐
-             ▼                   ▼
-      ┌─────────────┐     ┌──────────────┐
-      │ 5. URL Scan │     │ 6. Source    │
-      │ OWASP ZAP   │     │ Code Scan    │
-      └──────┬──────┘     └──────┬───────┘
-             │                   │
-             └─────────┬─────────┘
-                       ▼
-              ┌─────────────────┐
-              │ 7. Normalization│
-              │ & Findings      │
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │ 8. Reports      │
-              │ & Dashboard     │
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │ 9. Security     │
-              │ Hardening       │
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │ 10. Deployment  │
-              └─────────────────┘
-
-
-📚 Learning Objectives
-
-Frontend
-React
-Next.js
-JavaScript
-Redux Toolkit
-React Hook Form
-API integration
-Responsive UI
-Charts
-Tables
-File uploads
-State management
-
-Backend
-Node.js
-Express.js
-REST APIs
-Authentication
-Authorization
-JWT
-Password hashing
-Validation
-Error handling
-Logging
-File processing
-
-Database
-MongoDB
-Mongoose
-Data modeling
-Querying
-Indexing
-Security
-OWASP concepts
-SAST
-DAST
-Authentication
-Authorization
-JWT
-Password security
-XSS
-Injection
-Secrets management
-Security headers
-CORS
-CSRF concepts
-Dependency vulnerabilities
-File upload security
-Path traversal
-Rate limiting
-Software Engineering
-Git
-GitHub
-API testing
-Docker
-Environment configuration
-Deployment
-Application architecture
-Background processing
-Logging and monitoring
+</div>
