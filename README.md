@@ -2,13 +2,13 @@
 
 # AppCheck
 
-**Web Application Security & Code Quality Analyzer**
+### Web Application Security & Code Quality Analyzer
 
 A developer-focused workspace for managing security scans, reviewing findings, and tracking application risk.
 
-![AppCheck landing page](docs/images/landing-page.png)
+![AppCheck Landing Page](docs/images/landing-page.png)
 
-[Overview](#overview) · [Features](#features) · [Architecture](#architecture) · [Setup](#getting-started) · [Security](#security--responsible-use) · [Roadmap](#project-status)
+**[Overview](#overview) · [Features](#features) · [Architecture](#architecture) · [Getting Started](#getting-started) · [Security](#security--responsible-use) · [Project Status](#project-status)**
 
 </div>
 
@@ -16,38 +16,38 @@ A developer-focused workspace for managing security scans, reviewing findings, a
 
 ## Overview
 
-Modern applications depend on frameworks, APIs, authentication systems, configuration, and third-party packages. A vulnerable dependency, exposed secret, or insecure configuration can introduce risk.
+Modern applications depend on frameworks, APIs, authentication systems, configuration, and third-party packages. A vulnerable dependency, exposed secret, or insecure configuration can introduce security risks.
 
-**AppCheck** is a full-stack application-security project intended to bring authorized web-application scanning and source-code analysis into one workspace. It includes account authentication, scan-request management, scan history, finding persistence, and a dashboard for reviewing results.
+**AppCheck** is a full-stack application-security project designed to bring authorized web application scanning and source-code analysis into one workspace. It includes account authentication, scan management, scan history, finding persistence, and a dashboard for reviewing results.
 
-> **Current status:** The URL-scanning workflow and OWASP ZAP Docker runner are implemented in code, but a real ZAP scan has **not yet been verified** on the development machine because Docker and WSL 2 are not installed there. Existing scanner tests use mocked ZAP execution. End-to-end source-code scanning is planned and is not currently available.
+> **Current status:** The URL-scanning workflow and OWASP ZAP Docker runner are implemented in code, but real ZAP execution has not yet been verified on the development machine. Existing scanner tests use mocked ZAP execution. End-to-end source-code scanning is planned and is not currently available.
 
 ## Screenshots
 
 <table>
   <tr>
     <td align="center" width="50%">
-      <strong>Public landing page</strong><br><br>
+      <strong>Public Landing Page</strong><br><br>
       <img src="docs/images/landing-page.png" alt="AppCheck public landing page" width="100%">
     </td>
     <td align="center" width="50%">
-      <strong>Dashboard overview</strong><br><br>
+      <strong>Dashboard Overview</strong><br><br>
       <img src="docs/images/dashboard-overview.png" alt="AppCheck dashboard overview" width="100%">
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <strong>Create account</strong><br><br>
+      <strong>Create Account</strong><br><br>
       <img src="docs/images/register-page.png" alt="AppCheck registration page" width="100%">
     </td>
     <td align="center" width="50%">
-      <strong>Sign in</strong><br><br>
+      <strong>Sign In</strong><br><br>
       <img src="docs/images/login-page.png" alt="AppCheck sign-in page" width="100%">
     </td>
   </tr>
   <tr>
     <td align="center" colspan="2">
-      <strong>Security posture and system status</strong><br><br>
+      <strong>Security Posture & System Status</strong><br><br>
       <img src="docs/images/dashboard-security-posture.png" alt="AppCheck security posture and system status" width="100%">
     </td>
   </tr>
