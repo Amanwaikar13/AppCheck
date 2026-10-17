@@ -32,7 +32,7 @@ Modern applications depend on frameworks, APIs, authentication systems, configur
     </td>
     <td align="center" width="50%">
       <strong>Dashboard Overview</strong><br><br>
-      <img src="docs/images/dashboard-page.png" alt="AppCheck dashboard overview" width="100%">
+      <img src="docs/images/dashboard-page2.png" alt="AppCheck dashboard overview" width="100%">
     </td>
   </tr>
   <tr>
