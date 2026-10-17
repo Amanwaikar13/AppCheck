@@ -48,7 +48,7 @@ Modern applications depend on frameworks, APIs, authentication systems, configur
   <tr>
     <td align="center" colspan="2">
       <strong>Security Posture & System Status</strong><br><br>
-      <img src="docs/images/dashboard-security-posture.png" alt="AppCheck security posture and system status" width="100%">
+      <img src="docs/images/dashboard-page2.png" alt="AppCheck security posture and system status" width="100%">
     </td>
   </tr>
 </table>
